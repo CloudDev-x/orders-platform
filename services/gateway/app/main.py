@@ -1,9 +1,12 @@
 import logging
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI, Request, Response
 
+from app.api.orders import router as orders_router
 from app.config import get_settings
 from app.logging_config import configure_logging
 
@@ -13,7 +16,20 @@ logger = logging.getLogger("gateway")
 
 REQUEST_ID_HEADER = "X-Request-ID"
 
-app = FastAPI(title="gateway")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # One shared client per process: connection pooling, one timeout policy for all calls to orders
+    async with httpx.AsyncClient(
+        base_url=settings.orders_base_url,
+        timeout=settings.http_timeout_seconds,
+    ) as orders_http:
+        app.state.orders_http = orders_http
+        yield
+
+
+app = FastAPI(title="gateway", lifespan=lifespan)
+app.include_router(orders_router)
 
 
 @app.middleware("http")
@@ -35,13 +51,11 @@ async def request_id_middleware(
 
 @app.get("/healthz")
 def healthz() -> dict[str, str]:
-    # Liveness: the process is up and able to serve. No dependency checks here,
-    # because a failing dependency should not make Kubernetes restart the pod.
     return {"status": "ok"}
 
 
 @app.get("/readyz")
 def readyz() -> dict[str, str]:
-    # Readiness: should this pod receive traffic? No dependencies yet.
-    # When the orders client is added, check it here and return 503 on failure.
+    # Deliberately does not check orders. If it did, an orders outage would take the gateway out of
+    # rotation too, and every route would fail for the same reason.
     return {"status": "ready"}
