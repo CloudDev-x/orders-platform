@@ -67,7 +67,5 @@ async def readyz() -> Response:
                 await connection.execute(text("SELECT 1"))
     except Exception:
         logger.exception("readiness check failed", extra={"check": "database"})
-        return JSONResponse(
-            {"status": "unavailable", "check": "database"}, status_code=503
-        )
+        return JSONResponse({"status": "unavailable", "check": "database"}, status_code=503)
     return JSONResponse({"status": "ready"})
