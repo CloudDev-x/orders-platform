@@ -59,3 +59,4 @@ def readyz() -> dict[str, str]:
     # Deliberately does not check orders. If it did, an orders outage would take the gateway out of
     # rotation too, and every route would fail for the same reason.
     return {"status": "ready"}
+
