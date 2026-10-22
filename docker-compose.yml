@@ -15,5 +15,24 @@ services:
       timeout: 3s
       retries: 10
 
+  orders:
+    build: ./services/orders
+    environment:
+      ORDERS_DATABASE_URL: postgresql+asyncpg://orders:orders_local_dev@postgres:5432/orders
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    build: ./services/gateway
+    environment:
+      GATEWAY_ORDERS_BASE_URL: http://orders:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - orders
+
 volumes:
   orders-pgdata:
