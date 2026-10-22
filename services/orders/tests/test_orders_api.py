@@ -20,9 +20,7 @@ async def client() -> AsyncIterator[AsyncClient]:
 
 
 async def test_create_then_fetch_order(client: AsyncClient) -> None:
-    created = await client.post(
-        "/orders", json={"customer_id": "cust-1", "total_amount": "10.50"}
-    )
+    created = await client.post("/orders", json={"customer_id": "cust-1", "total_amount": "10.50"})
     assert created.status_code == 201
     order = created.json()
     assert order["status"] == "pending"
@@ -38,9 +36,7 @@ async def test_missing_order_returns_404(client: AsyncClient) -> None:
 
 
 async def test_rejects_non_positive_amount(client: AsyncClient) -> None:
-    response = await client.post(
-        "/orders", json={"customer_id": "cust-1", "total_amount": "-5"}
-    )
+    response = await client.post("/orders", json={"customer_id": "cust-1", "total_amount": "-5"})
     assert response.status_code == 422
 
 
