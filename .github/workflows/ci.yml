@@ -68,3 +68,4 @@ jobs:
       - run: uv run mypy app
       # Runs every migration against an empty database, the same way a fresh environment would
       - run: uv run alembic upgrade head
+      - run: uv run pytest
