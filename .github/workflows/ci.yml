@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
     paths:
-      - "services/gateway/**"
+      - "services/**"
       - ".github/workflows/ci.yml"
 
 permissions:
@@ -25,10 +25,46 @@ jobs:
           enable-cache: true
           cache-dependency-glob: services/gateway/uv.lock
 
-      # --locked fails the build if pyproject.toml and uv.lock disagree
       - run: uv sync --locked
-
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy app
       - run: uv run pytest
+
+  orders:
+    name: orders (lint, types, migrations)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: orders
+          POSTGRES_PASSWORD: orders_ci_only
+          POSTGRES_DB: orders
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U orders -d orders"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: services/orders
+    env:
+      ORDERS_DATABASE_URL: postgresql+asyncpg://orders:orders_ci_only@localhost:5432/orders
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: services/orders/uv.lock
+
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy app
+      # Runs every migration against an empty database, the same way a fresh environment would
+      - run: uv run alembic upgrade head
