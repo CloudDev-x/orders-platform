@@ -23,15 +23,17 @@ jobs:
     strategy:
       matrix:
         service: [gateway, orders]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           audience: sts.amazonaws.com
-          role-session-name: GHAECRPush
+          role-session-name: GHAECRPush-${{ matrix.service }}
 
       - uses: aws-actions/amazon-ecr-login@v2
 
