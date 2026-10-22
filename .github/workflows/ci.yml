@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "services/gateway/**"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  gateway:
+    name: gateway (lint, types, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: services/gateway/uv.lock
+
+      # --locked fails the build if pyproject.toml and uv.lock disagree
+      - run: uv sync --locked
+
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy app
+      - run: uv run pytest
